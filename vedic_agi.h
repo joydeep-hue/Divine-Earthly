@@ -1,7 +1,10 @@
 // Add this at the top of Satvik_Core.cpp for "Lower Chip" optimization
 #pragma GCC optimize("Ofast")
 #pragma GCC target("avx2,bmi,bmi2,lzcnt,popcnt") // Specific to modern & low-power logic
-#include <immintrin.h> 
+#include <immintrin.h>
+// Urdhva-Tiryak bit-level optimization - Note: 'res' must be defined in calling scope.
+#define VEDIC_MUL(a, b) __builtin_mul_overflow(a, b, &res)
+ 
 
 #ifndef VEDIC_AGI_H
 #define VEDIC_AGI_H
@@ -245,7 +248,14 @@ public:
                 if (shift < 31) { // Max shift for positive signed int32_t
                     return nikhilam_fast(static_cast<int32_t>(n1), static_cast<int32_t>(n2), shift);
                 }
-            }
+            
+    // Optimized Ekadhikena for squaring numbers ending in 5
+    // More efficient than standard multiplication for AGI weight scaling
+    static uint64_t ekadhikena_square(uint32_t n) {
+        uint32_t prefix = n / 10;
+        return (uint64_t(prefix) * (prefix + 1)) * 100 + 25;
+    }
+}
         }
         
         // Fallback to original power-of-10 based logic for larger numbers or non-power-of-2 bases

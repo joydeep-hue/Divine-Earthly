@@ -18,7 +18,7 @@ void print_banner() {
  ________  ___  ___  ________  ________  ___  ___       ________  ___
 |\   __  \|\  \|\  \|\   __  \|\   __  \|\  \|\  \     |\   __  \|\  \
 \ \  \|\  \\ \  \|\  \ \  \|\  \\ \  \|\  \\ \  \|\  \    \ \  \|\  \\ \  \
- \ \   _  _\\ \   __  \ \   ____\\ \   _  _\\ \   __  \    \ \   __  \\ \  \
+ \ \   _  _\ \   __  \ \   ____\\ \   _  _\\ \   __  \    \ \   __  \\ \  \
   \ \  \\  \\ \  \ \  \ \  \___|\ \  \\  \\ \  \ \  \____\ \  \|\  \\ \  \
    \ \__\\ _\\ \__\ \__\ \__\\ _\\ \__\\ _\\ \__\ \__\____\ \________\\ \__\
     \|__|\|__|\|__|\|__|\|__|\|__|\|__|\|__|\|__|\|__|"\__| \|________\|\|__|
@@ -82,6 +82,19 @@ int main() {
     std::cout << "Inverse sqrt of " << test_val3 << " (1.0) is approx " << isqrt_test3 << " (expected ~1.0)\n";
 
 
+    std::cout << "
+--- Testing VedicMath::ekadhikena_square ---
+";
+    uint32_t test_sq_n[] = {5, 15, 25, 75, 105, 125, 995, 1005};
+    for (uint32_t n_sq : test_sq_n) {
+        uint64_t result = VedicMath::ekadhikena_square(n_sq);
+        uint64_t expected = (uint64_t)n_sq * n_sq;
+        std::cout << "Square of " << n_sq << " (Ekadhikena): " << result << " (Expected: " << expected << ") "
+                  << (result == expected ? "✅" : "❌") << "
+";
+    }
+
+
     std::cout << "\n--- VedaQubit Functionality Demonstration ---";
 
     // --- VedaQubit Initialization and Normalization ---
@@ -117,7 +130,7 @@ int main() {
     std::cout << "(Expected probabilistic outcome based on normalized alpha and beta values.)\n";
 
     std::cout << "\n\n--- Divine Earthly Glow --- ";
-    std::cout << "\n>>> All Vedic Algorithms Verified. Satvik AGI Core Operational. <<<";
+    std::cout << "\n>>> All Vedic Algorithms Verified. Satvik AGI Core Operational. <<<\n";
 
     return 0;
 }
