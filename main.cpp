@@ -21,7 +21,9 @@ void print_banner() {
  \ \   _  _\\ \   __  \ \   ____\\ \   _  _\\ \   __  \    \ \   __  \\ \  \
   \ \  \\  \\ \  \ \  \ \  \___|\ \  \\  \\ \  \ \  \____\ \  |\  \\ \  \
    \ \__\\ _\\ \__\ \__\ \__\\ _\\ \__\\ _\\ \__\ \__\____\ \________\\ \__\
-    \|__|\|__|\|__|\|__|\|__|\|__|\|__|\|__|\|__|\|__|\"__| \|________\|\|__|)";
+    \|__|\|__|\|__|\|__|\|__|\|__|\|__|\|__|\|__|\|__|\"__| \|________\|\|__|
+
+)";
     std::cout << "\n\t\t\t>>> Satvik AGI: Vedic-Quantum Engine <<<";
     std::cout << "\n\t\t\t>>> Unlocking Harmonious Intelligence <<<";
     std::cout << "\n\t\t\t------------------------------------\n\n";
@@ -66,12 +68,25 @@ int main() {
 
     std::cout << "\n--- VALU_Core Functionality Demonstration ---";
 
-    // Demonstrate VALU_Core::nikhilam_pow2
+    // Demonstrate VALU_Core::nikhilam_pow2 (using power of 10 base)
     std::cout << "\nTesting VALU_Core::nikhilam_pow2 (Squaring near power of 10):\n";
     long long nikhilam_test_base = 98; // Near 100
     long long nikhilam_result = VALU_Core::nikhilam_pow2(nikhilam_test_base);
     std::cout << nikhilam_test_base << "^2 (Nikhilam) = " << nikhilam_result << " (Expected: " << nikhilam_test_base * nikhilam_test_base << ") "
               << (nikhilam_result == nikhilam_test_base * nikhilam_test_base ? "\u2705" : "\u274C") << "\n";
+    
+    // Demonstrate VALU_Core::nikhilam_pow2 (using power of 2 base)
+    std::cout << "\nTesting VALU_Core::nikhilam_pow2 (Squaring near power of 2, e.g., 1024):\n";
+    long long nikhilam_pow2_test_base = 1023; // Near 1024 (2^10)
+    long long nikhilam_pow2_result = VALU_Core::nikhilam_pow2(nikhilam_pow2_test_base);
+    std::cout << nikhilam_pow2_test_base << "^2 (Nikhilam Pow2) = " << nikhilam_pow2_result << " (Expected: " << nikhilam_pow2_test_base * nikhilam_pow2_test_base << ") "
+              << (nikhilam_pow2_result == nikhilam_pow2_test_base * nikhilam_pow2_test_base ? "\u2705" : "\u274C") << "\n";
+    
+    long long nikhilam_pow2_test_base_large = 1025; // Slightly above 1024
+    long long nikhilam_pow2_result_large = VALU_Core::nikhilam_pow2(nikhilam_pow2_test_base_large);
+    std::cout << nikhilam_pow2_test_base_large << "^2 (Nikhilam Pow2) = " << nikhilam_pow2_result_large << " (Expected: " << nikhilam_pow2_test_base_large * nikhilam_pow2_test_base_large << ") "
+              << (nikhilam_pow2_result_large == nikhilam_pow2_test_base_large * nikhilam_pow2_test_base_large ? "\u2705" : "\u274C") << "\n";
+
 
     // Demonstrate VALU_Core::cross_multiply
     std::cout << "\nTesting VALU_Core::cross_multiply (Urdhva-Tiryak):\n";
@@ -79,14 +94,14 @@ int main() {
     long long cm_result = VALU_Core::cross_multiply(cm_a, cm_b);
     std::cout << cm_a << " * " << cm_b << " (Urdhva-Tiryak) = " << cm_result << " (Expected: " << cm_a * cm_b << ") "
               << (cm_result == cm_a * cm_b ? "\u2705" : "\u274C") << "\n";
-    
+
     // Demonstrate VALU_Core::ekadhikena_fast
     std::cout << "\nTesting VALU_Core::ekadhikena_fast (Squaring numbers ending in 5):\n";
     uint32_t ekadhikena_test_n = 75;
     uint64_t ekadhikena_result = VALU_Core::ekadhikena_fast(ekadhikena_test_n);
     std::cout << ekadhikena_test_n << "^2 (Ekadhikena) = " << ekadhikena_result << " (Expected: " << (uint64_t)ekadhikena_test_n * ekadhikena_test_n << ") "
               << (ekadhikena_result == (uint64_t)ekadhikena_test_n * ekadhikena_test_n ? "\u2705" : "\u274C") << "\n";
-    
+
     uint32_t ekadhikena_test_n2 = 123; // Does not end in 5, should fallback to standard
     uint64_t ekadhikena_result2 = VALU_Core::ekadhikena_fast(ekadhikena_test_n2);
     std::cout << ekadhikena_test_n2 << "^2 (Ekadhikena) = " << ekadhikena_result2 << " (Expected: " << (uint64_t)ekadhikena_test_n2 * ekadhikena_test_n2 << ") "
