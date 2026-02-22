@@ -1,3 +1,8 @@
+// Add this at the top of Satvik_Core.cpp for "Lower Chip" optimization
+#pragma GCC optimize("Ofast")
+#pragma GCC target("avx2,bmi,bmi2,lzcnt,popcnt") // Specific to modern & low-power logic
+#include <immintrin.h> 
+
 #ifndef VEDIC_AGI_H
 #define VEDIC_AGI_H
 
@@ -7,12 +12,22 @@
 #include <algorithm>
 #include <cmath> // For std::sqrt
 #include <cstdlib> // For std::rand, RAND_MAX
+#include <cstdint> // For int32_t
 
 namespace SatvikAGI {
+
+// Optimized Nikhilam Logic
+inline int32_t nikhilam_fast(int32_t a, int32_t b, int32_t shift) {
+    int32_t base = 1 << shift;
+    int32_t d1 = base - a;
+    int32_t d2 = base - b;
+    return ((base - (d1 + d2)) << shift) + (d1 * d2);
+}
 
 // Define a scaling factor for fixed-point arithmetic
 #define SCALE_FACTOR_BITS 16
 const long long FIXED_POINT_SCALE = (1LL << SCALE_FACTOR_BITS); // 2^16
+
 /**
  * @brief Represents a fixed-point number using long long for precision.
  * The value is stored as an integer multiplied by FIXED_POINT_SCALE.
@@ -80,9 +95,9 @@ struct FixedPoint {
 
     // NEW (FULL IMPLEMENTATION): Fixed-point inverse square root approximation (Newton-Raphson)
     static FixedPoint inverse_sqrt_fixed_point(FixedPoint x) {
-        std::cerr << "DEBUG_ISQRT: Entering with x.value=" << x.value << ", x.to_double()=" << x.to_double() << std::endl;
+        //std::cerr << "DEBUG_ISQRT: Entering with x.value=" << x.value << ", x.to_double()=" << x.to_double() << std::endl;
         if (x.value == 0) {
-            std::cerr << "DEBUG_ISQRT: x.value is 0, returning 0." << std::endl;
+            //std::cerr << "DEBUG_ISQRT: x.value is 0, returning 0." << std::endl;
             return FixedPoint(0LL);
         }
 
@@ -100,9 +115,9 @@ struct FixedPoint {
             guess.value = (1LL << (SCALE_FACTOR_BITS - 1)); // 0.5 scaled
         } else { // x < 1.0 (e.g., 0.25, 0.99)
             // For 1/sqrt(x) where x < 1, the result is > 1. A safer starting guess is 1.0, especially when x is close to 1.
-            guess.value = one_fp_value; // Initial guess approx 1.0 (Corrected from (2LL << SCALE_FACTOR_BITS))
+            guess.value = one_fp_value; // Initial guess approx 1.0 
         }
-        std::cerr << "DEBUG_ISQRT: Initial guess.value=" << guess.value << ", guess.to_double()=" << guess.to_double() << std::endl;
+        //std::cerr << "DEBUG_ISQRT: Initial guess.value=" << guess.value << ", guess.to_double()=" << guess.to_double() << std::endl;
 
         FixedPoint three_fp;
         three_fp.value = (3LL << SCALE_FACTOR_BITS);
@@ -110,25 +125,26 @@ struct FixedPoint {
         for (int i = 0; i < 4; ++i) { // 4 iterations for reasonable precision
             FixedPoint x_times_y_sq = x * guess * guess;
             FixedPoint term = three_fp - x_times_y_sq;
-            
+
             // Check for potential underflow or values becoming zero
-            std::cerr << "DEBUG_ISQRT: Iter " << i << ": x_times_y_sq.value=" << x_times_y_sq.value << ", x_times_y_sq.to_double()=" << x_times_y_sq.to_double() << std::endl;
-            std::cerr << "DEBUG_ISQRT: Iter " << i << ": term.value=" << term.value << ", term.to_double()=" << term.to_double() << std::endl;
+            //std::cerr << "DEBUG_ISQRT: Iter " << i << ": x_times_y_sq.value=" << x_times_y_sq.value << ", x_times_y_sq.to_double()=" << x_times_y_sq.to_double() << std::endl;
+            //std::cerr << "DEBUG_ISQRT: Iter " << i << ": term.value=" << term.value << ", term.to_double()=" << term.to_double() << std::endl;
 
             // Apply the Newton-Raphson update
             // guess = (guess * term) / FixedPoint(2.0);
             // This means: guess.value = (guess.value * term.value >> SCALE_FACTOR_BITS) >> 1
             // simplified as: (guess.value * term.value) >> (SCALE_FACTOR_BITS + 1)
             long long intermediate_prod = guess.value * term.value;
-            std::cerr << "DEBUG_ISQRT: Iter " << i << ": guess.value * term.value (unscaled) = " << intermediate_prod << std::endl;
+            //std::cerr << "DEBUG_ISQRT: Iter " << i << ": guess.value * term.value (unscaled) = " << intermediate_prod << std::endl;
             guess.value = intermediate_prod >> (SCALE_FACTOR_BITS + 1);
 
-            std::cerr << "DEBUG_ISQRT: Iter " << i << ": new guess.value=" << guess.value << ", new guess.to_double()=" << guess.to_double() << std::endl;
+            //std::cerr << "DEBUG_ISQRT: Iter " << i << ": new guess.value=" << guess.value << ", new guess.to_double()=" << guess.to_double() << std::endl;
         }
-        std::cerr << "DEBUG_ISQRT: Exiting with guess.value=" << guess.value << ", guess.to_double()=" << guess.to_double() << std::endl;
+        //std::cerr << "DEBUG_ISQRT: Exiting with guess.value=" << guess.value << ", guess.to_double()=" << guess.to_double() << std::endl;
         return guess;
     }
 };
+
 // Output stream operator for easy printing
 std::ostream& operator<<(std::ostream& os, const FixedPoint& fp) {
     os << fp.to_double();
@@ -219,6 +235,20 @@ public:
     }
 
     static long long nikhilam_multiplier(long long n1, long long n2) {
+        // Apply nikhilam_fast if numbers fit into int32_t range and base is power of 2
+        if (n1 >= 0 && n1 <= INT32_MAX && n2 >= 0 && n2 <= INT32_MAX) {
+            long long max_val = std::max(n1, n2);
+            if (max_val > 0) {
+                // Determine the smallest power of 2 that is >= max_val
+                int shift = std::ceil(std::log2(max_val));
+                // Ensure shift doesn't create a base that overflows int32_t
+                if (shift < 31) { // Max shift for positive signed int32_t
+                    return nikhilam_fast(static_cast<int32_t>(n1), static_cast<int32_t>(n2), shift);
+                }
+            }
+        }
+        
+        // Fallback to original power-of-10 based logic for larger numbers or non-power-of-2 bases
         long long base = 1;
         while (base <= n1 || base <= n2) {
             base *= 10;
@@ -258,8 +288,11 @@ struct VedaQubit {
         SatvikAGI::FixedPoint beta_sq = beta * beta;
         SatvikAGI::FixedPoint sum_sq = alpha_sq + beta_sq;
 
+        //std::cerr << "DEBUG_NORM: normalize() - alpha.value=" << alpha.value << ", beta.value=" << beta.value << std::endl;
+        //std::cerr << "DEBUG_NORM: normalize() - alpha_sq.value=" << alpha_sq.value << ", beta_sq.value=" << beta_sq.value << ", sum_sq.value=" << sum_sq.value << std::endl;
+
         if (sum_sq.value == 0) {
-            // Avoid division by zero, set to default normalized state if both are zero.
+            //std::cerr << "DEBUG_NORM: sum_sq.value is 0, recursing with default values." << std::endl;
             alpha = SatvikAGI::FixedPoint(0.7071);
             beta = SatvikAGI::FixedPoint(0.7071);
             normalize(); // Recurse to normalize the new default state
@@ -268,10 +301,12 @@ struct VedaQubit {
 
         // Calculate inverse square root approximation using fixed-point arithmetic
         SatvikAGI::FixedPoint norm_factor_inverse = FixedPoint::inverse_sqrt_fixed_point(sum_sq);
+        //std::cerr << "DEBUG_NORM: norm_factor_inverse.value=" << norm_factor_inverse.value << ", norm_factor_inverse.to_double()=" << norm_factor_inverse.to_double() << std::endl;
 
         // Apply normalization: alpha = alpha * (1/sqrt(sum_sq)), beta = beta * (1/sqrt(sum_sq))
         alpha = alpha * norm_factor_inverse;
         beta = beta * norm_factor_inverse;
+        //std::cerr << "DEBUG_NORM: normalize() - after norm - alpha.value=" << alpha.value << ", beta.value=" << beta.value << std::endl;
     }
 
     /**
@@ -315,49 +350,6 @@ struct VedaQubit {
 
     // Output stream operator for VedaQubit - needs to be declared as friend inside the struct
     friend std::ostream& operator<<(std::ostream& os, const VedaQubit& q);
-
-    // NEW: Fixed-point inverse square root approximation (Newton-Raphson)
-    static FixedPoint inverse_sqrt_fixed_point(FixedPoint x) {
-        // Handle zero input to avoid division by zero
-        if (x.value == 0) return FixedPoint(0LL); // Or throw an error
-
-        FixedPoint guess;
-
-        // Simplified initial guess logic
-        // If x is large, 1/sqrt(x) is small. If x is small, 1/sqrt(x) is large.
-        // A better initial guess would involve bit manipulation or a lookup table.
-        // For now, we'll try a rough heuristic based on magnitude relative to 1.0 fixed point
-        FixedPoint one_fp = FixedPoint(1LL << SCALE_FACTOR_BITS);
-
-        if (x.value > (one_fp.value << 2)) { // If x > 4.0
-            guess = FixedPoint(1LL << (SCALE_FACTOR_BITS - 1)); // Initial guess approx 0.5
-        } else if (x.value < (one_fp.value >> 2)) { // If x < 0.25
-            guess = FixedPoint(1LL << (SCALE_FACTOR_BITS + 1)); // Initial guess approx 2.0
-        } else {
-            guess = one_fp; // Initial guess approx 1.0
-        }
-
-        // Newton-Raphson iteration for 1/sqrt(x):
-        // y_new = y_old * (3 - x * y_old^2) / 2
-        // Using bit shifts for division by 2
-
-        FixedPoint three_fp = FixedPoint(3LL << SCALE_FACTOR_BITS);
-        
-        for (int i = 0; i < 4; ++i) { // 4 iterations for reasonable precision
-            FixedPoint x_times_y_sq = x * guess * guess; // x * guess^2
-            FixedPoint term = three_fp - x_times_y_sq;    // 3 - x * guess^2
-            
-            // guess = (guess * term) / FixedPoint(2.0);
-            // FixedPoint(2.0) is (2LL << SCALE_FACTOR_BITS)
-            // So guess * term >> SCALE_FACTOR_BITS, then divide by 2
-            // So (guess.value * term.value >> SCALE_FACTOR_BITS) >> 1
-            // simplified as guess.value * term.value >> (SCALE_FACTOR_BITS + 1)
-            
-            guess.value = (guess.value * term.value) >> (SCALE_FACTOR_BITS + 1);
-        }
-        return guess;
-    }
-
 };
 
 // Definition of the output stream operator outside the struct but within the namespace

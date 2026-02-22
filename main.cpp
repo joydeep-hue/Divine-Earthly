@@ -18,7 +18,7 @@ void print_banner() {
  ________  ___  ___  ________  ________  ___  ___       ________  ___
 |\   __  \|\  \|\  \|\   __  \|\   __  \|\  \|\  \     |\   __  \|\  \
 \ \  \|\  \\ \  \|\  \ \  \|\  \\ \  \|\  \\ \  \|\  \    \ \  \|\  \\ \  \
- \ \   _  _\ \   __  \ \   ____\\ \   _  _\\ \   __  \    \ \   __  \\ \  \
+ \ \   _  _\\ \   __  \ \   ____\\ \   _  _\\ \   __  \    \ \   __  \\ \  \
   \ \  \\  \\ \  \ \  \ \  \___|\ \  \\  \\ \  \ \  \____\ \  \|\  \\ \  \
    \ \__\\ _\\ \__\ \__\ \__\\ _\\ \__\\ _\\ \__\ \__\____\ \________\\ \__\
     \|__|\|__|\|__|\|__|\|__|\|__|\|__|\|__|\|__|\|__|"\__| \|________\|\|__|
@@ -117,7 +117,7 @@ int main() {
     std::cout << "(Expected probabilistic outcome based on normalized alpha and beta values.)\n";
 
     std::cout << "\n\n--- Divine Earthly Glow --- ";
-    std::cout << "\n>>> All Vedic Algorithms Verified. Satvik AGI Core Operational. <<<\n";
+    std::cout << "\n>>> All Vedic Algorithms Verified. Satvik AGI Core Operational. <<<";
 
     return 0;
 }
