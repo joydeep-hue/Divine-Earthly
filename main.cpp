@@ -7,7 +7,7 @@
 #include <algorithm> // For std::reverse, etc., if needed by included headers
 #include <iomanip>  // For std::fixed and std::setprecision
 
-#include "vedic_agi.h" // Include the header with FixedPoint, VedicMath, VedaQubit
+#include "vedic_agi.h" // Include the header with FixedPoint, VALU_Core, VedaQubit
 
 // Use the SatvikAGI namespace directly for convenience in main.cpp
 using namespace SatvikAGI;
@@ -17,13 +17,11 @@ void print_banner() {
     std::cout << R"(
  ________  ___  ___  ________  ________  ___  ___       ________  ___
 |\   __  \|\  \|\  \|\   __  \|\   __  \|\  \|\  \     |\   __  \|\  \
-\ \  \|\  \\ \  \|\  \ \  \|\  \\ \  \|\  \\ \  \|\  \    \ \  \|\  \\ \  \
- \ \   _  _\ \   __  \ \   ____\\ \   _  _\\ \   __  \    \ \   __  \\ \  \
-  \ \  \\  \\ \  \ \  \ \  \___|\ \  \\  \\ \  \ \  \____\ \  \|\  \\ \  \
+\ \  |\  \\ \  |\  \ \  |\  \\ \  |\  \\ \  |\  \    \ \  |\  \\ \  \
+ \ \   _  _\\ \   __  \ \   ____\\ \   _  _\\ \   __  \    \ \   __  \\ \  \
+  \ \  \\  \\ \  \ \  \ \  \___|\ \  \\  \\ \  \ \  \____\ \  |\  \\ \  \
    \ \__\\ _\\ \__\ \__\ \__\\ _\\ \__\\ _\\ \__\ \__\____\ \________\\ \__\
-    \|__|\|__|\|__|\|__|\|__|\|__|\|__|\|__|\|__|\|__|"\__| \|________\|\|__|
-
-)";
+    \|__|\|__|\|__|\|__|\|__|\|__|\|__|\|__|\|__|\|__|\"__| \|________\|\|__|)";
     std::cout << "\n\t\t\t>>> Satvik AGI: Vedic-Quantum Engine <<<";
     std::cout << "\n\t\t\t>>> Unlocking Harmonious Intelligence <<<";
     std::cout << "\n\t\t\t------------------------------------\n\n";
@@ -35,30 +33,29 @@ int main() {
     // Seed the random number generator
     std::srand(static_cast<unsigned int>(std::time(nullptr)));
     std::default_random_engine generator(std::chrono::system_clock::now().time_since_epoch().count());
-    std::uniform_int_distribution<long long> distribution(10, 9999); // Numbers for multiplication benchmarks
+    std::uniform_int_distribution<long long> distribution_large(100, 9999); // Numbers for multiplication benchmarks
+    std::uniform_int_distribution<uint32_t> distribution_uint32(1, 1000); // Numbers for ekadhikena_fast
 
     const int num_iterations = 100000; // Number of operations for benchmarking
 
-    std::cout << "\n--- Performance Benchmarking: Urdhva-Tiryak vs. Standard Multiplication ---";
+    std::cout << "\n--- Performance Benchmarking: VALU_Core::cross_multiply vs. Standard Multiplication ---";
     std::cout << "\nRunning " << num_iterations << " iterations...\n";
 
-    // --- Benchmark VedicMath::urdhva_tiryak_multiply ---
     std::vector<long long> a_vals(num_iterations);
     std::vector<long long> b_vals(num_iterations);
     for (int i = 0; i < num_iterations; ++i) {
-        a_vals[i] = distribution(generator);
-        b_vals[i] = distribution(generator);
+        a_vals[i] = distribution_large(generator);
+        b_vals[i] = distribution_large(generator);
     }
 
     auto start_vedic = std::chrono::high_resolution_clock::now();
     for (int i = 0; i < num_iterations; ++i) {
-        VedicMath::urdhva_tiryak_multiply(a_vals[i], b_vals[i]);
+        VALU_Core::cross_multiply(a_vals[i], b_vals[i]);
     }
     auto end_vedic = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> vedic_duration = end_vedic - start_vedic;
-    std::cout << "Urdhva-Tiryak Multiplication Time: " << std::fixed << std::setprecision(6) << vedic_duration.count() << " seconds\n";
+    std::cout << "VALU_Core::cross_multiply Time: " << std::fixed << std::setprecision(6) << vedic_duration.count() << " seconds\n";
 
-    // --- Benchmark Standard long long Multiplication ---
     auto start_standard = std::chrono::high_resolution_clock::now();
     for (int i = 0; i < num_iterations; ++i) {
         (void)(a_vals[i] * b_vals[i]); // Cast to void to prevent compiler optimizations from removing the operation
@@ -67,32 +64,33 @@ int main() {
     std::chrono::duration<double> standard_duration = end_standard - start_standard;
     std::cout << "Standard long long Multiplication Time: " << std::fixed << std::setprecision(6) << standard_duration.count() << " seconds\n";
 
-    // NEW: Test FixedPoint::inverse_sqrt_fixed_point
-    std::cout << "\n--- Testing FixedPoint::inverse_sqrt_fixed_point ---\n";
-    FixedPoint test_val1(4.0);
-    FixedPoint isqrt_test1 = FixedPoint::inverse_sqrt_fixed_point(test_val1);
-    std::cout << "Inverse sqrt of " << test_val1 << " (4.0) is approx " << isqrt_test1 << " (expected ~0.5)\n";
+    std::cout << "\n--- VALU_Core Functionality Demonstration ---";
 
-    FixedPoint test_val2(0.25);
-    FixedPoint isqrt_test2 = FixedPoint::inverse_sqrt_fixed_point(test_val2);
-    std::cout << "Inverse sqrt of " << test_val2 << " (0.25) is approx " << isqrt_test2 << " (expected ~2.0)\n";
+    // Demonstrate VALU_Core::nikhilam_pow2
+    std::cout << "\nTesting VALU_Core::nikhilam_pow2 (Squaring near power of 10):\n";
+    long long nikhilam_test_base = 98; // Near 100
+    long long nikhilam_result = VALU_Core::nikhilam_pow2(nikhilam_test_base);
+    std::cout << nikhilam_test_base << "^2 (Nikhilam) = " << nikhilam_result << " (Expected: " << nikhilam_test_base * nikhilam_test_base << ") "
+              << (nikhilam_result == nikhilam_test_base * nikhilam_test_base ? "\u2705" : "\u274C") << "\n";
 
-    FixedPoint test_val3(1.0);
-    FixedPoint isqrt_test3 = FixedPoint::inverse_sqrt_fixed_point(test_val3);
-    std::cout << "Inverse sqrt of " << test_val3 << " (1.0) is approx " << isqrt_test3 << " (expected ~1.0)\n";
-
-
-    std::cout << "
---- Testing VedicMath::ekadhikena_square ---
-";
-    uint32_t test_sq_n[] = {5, 15, 25, 75, 105, 125, 995, 1005};
-    for (uint32_t n_sq : test_sq_n) {
-        uint64_t result = VedicMath::ekadhikena_square(n_sq);
-        uint64_t expected = (uint64_t)n_sq * n_sq;
-        std::cout << "Square of " << n_sq << " (Ekadhikena): " << result << " (Expected: " << expected << ") "
-                  << (result == expected ? "✅" : "❌") << "
-";
-    }
+    // Demonstrate VALU_Core::cross_multiply
+    std::cout << "\nTesting VALU_Core::cross_multiply (Urdhva-Tiryak):\n";
+    long long cm_a = 123, cm_b = 45;
+    long long cm_result = VALU_Core::cross_multiply(cm_a, cm_b);
+    std::cout << cm_a << " * " << cm_b << " (Urdhva-Tiryak) = " << cm_result << " (Expected: " << cm_a * cm_b << ") "
+              << (cm_result == cm_a * cm_b ? "\u2705" : "\u274C") << "\n";
+    
+    // Demonstrate VALU_Core::ekadhikena_fast
+    std::cout << "\nTesting VALU_Core::ekadhikena_fast (Squaring numbers ending in 5):\n";
+    uint32_t ekadhikena_test_n = 75;
+    uint64_t ekadhikena_result = VALU_Core::ekadhikena_fast(ekadhikena_test_n);
+    std::cout << ekadhikena_test_n << "^2 (Ekadhikena) = " << ekadhikena_result << " (Expected: " << (uint64_t)ekadhikena_test_n * ekadhikena_test_n << ") "
+              << (ekadhikena_result == (uint64_t)ekadhikena_test_n * ekadhikena_test_n ? "\u2705" : "\u274C") << "\n";
+    
+    uint32_t ekadhikena_test_n2 = 123; // Does not end in 5, should fallback to standard
+    uint64_t ekadhikena_result2 = VALU_Core::ekadhikena_fast(ekadhikena_test_n2);
+    std::cout << ekadhikena_test_n2 << "^2 (Ekadhikena) = " << ekadhikena_result2 << " (Expected: " << (uint64_t)ekadhikena_test_n2 * ekadhikena_test_n2 << ") "
+              << (ekadhikena_result2 == (uint64_t)ekadhikena_test_n2 * ekadhikena_test_n2 ? "\u2705" : "\u274C") << "\n";
 
 
     std::cout << "\n--- VedaQubit Functionality Demonstration ---";
@@ -107,7 +105,7 @@ int main() {
     FixedPoint custom_beta(0.8);  // Represents 0.8
     VedaQubit q2(custom_alpha, custom_beta);
     std::cout << "Qubit q2 before explicit normalization: (" << custom_alpha << ", " << custom_beta << ")\n";
-    q2.normalize(); // Ensure it's normalized
+    q2.normalize(); // Ensure it\'s normalized
     std::cout << "Qubit q2 after explicit normalization: " << q2 << "\n";
 
     // --- VedaQubit Hadamard-like Operation ---
