@@ -182,4 +182,106 @@ public:
 
 } // namespace SatvikAGI
 
+
+/**
+ * @brief Represents a quantum-inspired probabilistic weight using fixed-point numbers.
+ * Utilizes FixedPoint alpha (amplitude of |0>) and beta (amplitude of |1>)
+ * to manage state in a power-efficient manner for specialized AI/AGI applications.
+ * This implementation focuses on bit-manipulation efficiency.
+ */
+struct VedaQubit {
+    FixedPoint alpha; // Probabilistic weight for state |0>
+    FixedPoint beta;  // Probabilistic weight for state |1>
+
+    // Constructor for VedaQubit
+    // Initializes with given fixed-point amplitudes. Should ideally be normalized.
+    VedaQubit(FixedPoint a = FixedPoint(0.7071), FixedPoint b = FixedPoint(0.7071)) :
+        alpha(a), beta(b) {
+        // In a real quantum system, alpha^2 + beta^2 = 1. This needs to be maintained.
+        // For fixed-point, we approximate this with bitwise operations.
+        normalize();
+    }
+
+    /**
+     * @brief Normalizes the VedaQubit state such that alpha^2 + beta^2 is approximately 1.
+     * Uses fixed-point arithmetic for efficient power management.
+     * This is a critical step for maintaining the probabilistic interpretation of the qubit.
+     */
+    void normalize() {
+        FixedPoint alpha_sq = alpha * alpha;
+        FixedPoint beta_sq = beta * beta;
+        FixedPoint sum_sq = alpha_sq + beta_sq;
+
+        if (sum_sq.value == 0) {
+            // Avoid division by zero, set to default normalized state if both are zero.
+            alpha = FixedPoint(0.7071);
+            beta = FixedPoint(0.7071);
+            normalize(); // Recurse to normalize the new default state
+            return;
+        }
+
+        // Calculate inverse square root approximation for fixed-point numbers.
+        // This is a placeholder for a more optimized, bitwise inverse square root (e.g., fast inverse square root).
+        // For demonstration, we use floating point conversion for sqrt, then convert back.
+        double norm_factor_double = std::sqrt(sum_sq.to_double());
+        FixedPoint norm_factor = FixedPoint(norm_factor_double);
+
+        if (norm_factor.value != 0) {
+            alpha = alpha / norm_factor;
+            beta = beta / norm_factor;
+        } else {
+            // Fallback if normalization factor is still zero
+            alpha = FixedPoint(0.7071);
+            beta = FixedPoint(0.7071);
+        }
+    }
+
+    /**
+     * @brief Applies a Hadamard-like operation to the VedaQubit.
+     * This is a quantum-inspired operation for state superposition or transformation.
+     * In a fixed-point context, this would involve efficient bitwise shifts and additions.
+     */
+    void apply_hadamard() {
+        FixedPoint old_alpha = alpha;
+        // Approximated Hadamard for fixed-point:
+        // new_alpha = (old_alpha + old_beta) * (1/sqrt(2))
+        // new_beta  = (old_alpha - old_beta) * (1/sqrt(2))
+
+        FixedPoint one_over_sqrt2 = FixedPoint(0.7071); // Approx 1/sqrt(2)
+
+        alpha = (old_alpha + beta) * one_over_sqrt2;
+        beta = (old_alpha - beta) * one_over_sqrt2;
+        normalize(); // Ensure state remains normalized after transformation
+    }
+
+    /**
+     * @brief Measures the VedaQubit, collapsing it to |0> or |1> based on probabilities.
+     * Returns true for |0> (alpha wins), false for |1> (beta wins).
+     */
+    bool measure() const {
+        FixedPoint alpha_sq = alpha * alpha;
+        FixedPoint beta_sq = beta * beta; // Should sum to approximately 1 after normalization
+
+        // Generate a random fixed-point number between 0 and 1
+        // Placeholder for a high-quality, fixed-point random number generator
+        double random_double = (double)rand() / RAND_MAX; // Use std::rand for simplicity
+        FixedPoint random_fp = FixedPoint(random_double);
+
+        // Measure based on probabilities alpha^2 and beta^2
+        if (random_fp < alpha_sq) {
+            return true; // Collapse to |0>
+        } else {
+            return false; // Collapse to |1>
+        }
+    }
+
+    // Output stream operator for VedaQubit
+    friend std::ostream& operator<<(std::ostream& os, const VedaQubit& q) {
+        os << "(|0>: " << q.alpha << ", |1>: " << q.beta << ")";
+        return os;
+    }
+};
+
+} // namespace SatvikAGI
+
 #endif // VEDIC_AGI_H
