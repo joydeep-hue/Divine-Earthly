@@ -15,13 +15,13 @@ using namespace SatvikAGI;
 // Thematic ASCII Art Banner
 void print_banner() {
     std::cout << R"(
- ________  ___  ___  ________  ________  ___  ___       ________  ___       
-|\   __  \|\  \|\  \|\   __  \|\   __  \|\  \|\  \     |\   __  \|\  \      
-\ \  \|\  \\ \  \|\  \ \  \|\  \\ \  \|\  \\ \  \|\  \    \ \  \|\  \\ \  \     
- \ \   _  _\ \   __  \ \   ____\\ \   _  _\\ \   __  \    \ \   __  \\ \  \    
-  \ \  \\  \\ \  \ \  \ \  \___|\ \  \\  \\ \  \ \  \____\ \  \|\  \\ \  \   
-   \ \__\\ _\\ \__\ \__\ \__\\ _\\ \__\\ _\\ \__\ \__\____\ \________\\ \__\  
-    \|__|\|__|\|__|\|__|\|__|\|__|\|__|\|__|\|__|\|__|\|__| \|________\|\|__| 
+ ________  ___  ___  ________  ________  ___  ___       ________  ___
+|\   __  \|\  \|\  \|\   __  \|\   __  \|\  \|\  \     |\   __  \|\  \
+\ \  \|\  \\ \  \|\  \ \  \|\  \\ \  \|\  \\ \  \|\  \    \ \  \|\  \\ \  \
+ \ \   _  _\ \   __  \ \   ____\\ \   _  _\\ \   __  \    \ \   __  \\ \  \
+  \ \  \\  \\ \  \ \  \ \  \___|\ \  \\  \\ \  \ \  \____\ \  \|\  \\ \  \
+   \ \__\\ _\\ \__\ \__\ \__\\ _\\ \__\\ _\\ \__\ \__\____\ \________\\ \__\
+    \|__|\|__|\|__|\|__|\|__|\|__|\|__|\|__|\|__|\|__|"\__| \|________\|\|__|
 
 )";
     std::cout << "\n\t\t\t>>> Satvik AGI: Vedic-Quantum Engine <<<";
@@ -66,6 +66,21 @@ int main() {
     auto end_standard = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> standard_duration = end_standard - start_standard;
     std::cout << "Standard long long Multiplication Time: " << std::fixed << std::setprecision(6) << standard_duration.count() << " seconds\n";
+
+    // NEW: Test FixedPoint::inverse_sqrt_fixed_point
+    std::cout << "\n--- Testing FixedPoint::inverse_sqrt_fixed_point ---\n";
+    FixedPoint test_val1(4.0);
+    FixedPoint isqrt_test1 = FixedPoint::inverse_sqrt_fixed_point(test_val1);
+    std::cout << "Inverse sqrt of " << test_val1 << " (4.0) is approx " << isqrt_test1 << " (expected ~0.5)\n";
+
+    FixedPoint test_val2(0.25);
+    FixedPoint isqrt_test2 = FixedPoint::inverse_sqrt_fixed_point(test_val2);
+    std::cout << "Inverse sqrt of " << test_val2 << " (0.25) is approx " << isqrt_test2 << " (expected ~2.0)\n";
+
+    FixedPoint test_val3(1.0);
+    FixedPoint isqrt_test3 = FixedPoint::inverse_sqrt_fixed_point(test_val3);
+    std::cout << "Inverse sqrt of " << test_val3 << " (1.0) is approx " << isqrt_test3 << " (expected ~1.0)\n";
+
 
     std::cout << "\n--- VedaQubit Functionality Demonstration ---";
 

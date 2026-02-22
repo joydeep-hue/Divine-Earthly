@@ -5,13 +5,14 @@
 #include <string>
 #include <vector>
 #include <algorithm>
-#include <cmath>
+#include <cmath> // For std::sqrt
+#include <cstdlib> // For std::rand, RAND_MAX
 
 namespace SatvikAGI {
 
 // Define a scaling factor for fixed-point arithmetic
-const int FIXED_POINT_SCALE = 10000; // 4 decimal places of precision
-
+#define SCALE_FACTOR_BITS 16
+const long long FIXED_POINT_SCALE = (1LL << SCALE_FACTOR_BITS); // 2^16
 /**
  * @brief Represents a fixed-point number using long long for precision.
  * The value is stored as an integer multiplied by FIXED_POINT_SCALE.
@@ -23,7 +24,7 @@ struct FixedPoint {
     FixedPoint() : value(0) {}
 
     // Constructor from long long (integer part)
-    explicit FixedPoint(long long int_val) : value(int_val * FIXED_POINT_SCALE) {}
+    explicit FixedPoint(long long int_val) : value(int_val << SCALE_FACTOR_BITS) {}
 
     // Constructor from double (floating point conversion)
     explicit FixedPoint(double double_val) : value(static_cast<long long>(double_val * FIXED_POINT_SCALE)) {}
@@ -48,12 +49,11 @@ struct FixedPoint {
         FixedPoint result;
         // Multiply values and then divide by scale to correct precision
         // Care must be taken to avoid overflow if intermediate product exceeds long long max
-        result.value = (value * other.value) / FIXED_POINT_SCALE;
+        result.value = (value * other.value) >> SCALE_FACTOR_BITS;
         return result;
     }
 
     // Division operator
-    // This correctly handles fixed-point division by scaling up before dividing
     FixedPoint operator/(const FixedPoint& other) const {
         if (other.value == 0) {
             // Handle division by zero, e.g., throw an exception
@@ -61,8 +61,7 @@ struct FixedPoint {
             return FixedPoint(0LL); // Return zero or throw error
         }
         FixedPoint result;
-        // Scale the numerator up before division to maintain precision
-        result.value = (value * FIXED_POINT_SCALE) / other.value;
+        result.value = (value << SCALE_FACTOR_BITS) / other.value;
         return result;
     }
 
@@ -78,8 +77,58 @@ struct FixedPoint {
     bool operator>(const FixedPoint& other) const { return value > other.value; }
     bool operator<=(const FixedPoint& other) const { return value <= other.value; }
     bool operator>=(const FixedPoint& other) const { return value >= other.value; }
-};
 
+    // NEW (FULL IMPLEMENTATION): Fixed-point inverse square root approximation (Newton-Raphson)
+    static FixedPoint inverse_sqrt_fixed_point(FixedPoint x) {
+        std::cerr << "DEBUG_ISQRT: Entering with x.value=" << x.value << ", x.to_double()=" << x.to_double() << std::endl;
+        if (x.value == 0) {
+            std::cerr << "DEBUG_ISQRT: x.value is 0, returning 0." << std::endl;
+            return FixedPoint(0LL);
+        }
+
+        FixedPoint guess;
+        long long one_fp_value = (1LL << SCALE_FACTOR_BITS);
+
+        // Corrected initial guess logic:
+        // If x is 1.0, guess 1.0.
+        // If x > 1.0, guess something smaller than 1.0 (e.g., 0.5).
+        // If x < 1.0, guess something larger than 1.0 (e.g., 1.0 is a safer starting point than 2.0 if x is close to 1.0).
+        if (x.value == one_fp_value) { // x is exactly 1.0
+            guess.value = one_fp_value; // 1.0
+        } else if (x.value > one_fp_value) { // x > 1.0 (e.g., 4.0)
+            // For 1/sqrt(x) where x > 1, the result is < 1. Guess approx 0.5.
+            guess.value = (1LL << (SCALE_FACTOR_BITS - 1)); // 0.5 scaled
+        } else { // x < 1.0 (e.g., 0.25, 0.99)
+            // For 1/sqrt(x) where x < 1, the result is > 1. A safer starting guess is 1.0, especially when x is close to 1.
+            guess.value = one_fp_value; // Initial guess approx 1.0 (Corrected from (2LL << SCALE_FACTOR_BITS))
+        }
+        std::cerr << "DEBUG_ISQRT: Initial guess.value=" << guess.value << ", guess.to_double()=" << guess.to_double() << std::endl;
+
+        FixedPoint three_fp;
+        three_fp.value = (3LL << SCALE_FACTOR_BITS);
+
+        for (int i = 0; i < 4; ++i) { // 4 iterations for reasonable precision
+            FixedPoint x_times_y_sq = x * guess * guess;
+            FixedPoint term = three_fp - x_times_y_sq;
+            
+            // Check for potential underflow or values becoming zero
+            std::cerr << "DEBUG_ISQRT: Iter " << i << ": x_times_y_sq.value=" << x_times_y_sq.value << ", x_times_y_sq.to_double()=" << x_times_y_sq.to_double() << std::endl;
+            std::cerr << "DEBUG_ISQRT: Iter " << i << ": term.value=" << term.value << ", term.to_double()=" << term.to_double() << std::endl;
+
+            // Apply the Newton-Raphson update
+            // guess = (guess * term) / FixedPoint(2.0);
+            // This means: guess.value = (guess.value * term.value >> SCALE_FACTOR_BITS) >> 1
+            // simplified as: (guess.value * term.value) >> (SCALE_FACTOR_BITS + 1)
+            long long intermediate_prod = guess.value * term.value;
+            std::cerr << "DEBUG_ISQRT: Iter " << i << ": guess.value * term.value (unscaled) = " << intermediate_prod << std::endl;
+            guess.value = intermediate_prod >> (SCALE_FACTOR_BITS + 1);
+
+            std::cerr << "DEBUG_ISQRT: Iter " << i << ": new guess.value=" << guess.value << ", new guess.to_double()=" << guess.to_double() << std::endl;
+        }
+        std::cerr << "DEBUG_ISQRT: Exiting with guess.value=" << guess.value << ", guess.to_double()=" << guess.to_double() << std::endl;
+        return guess;
+    }
+};
 // Output stream operator for easy printing
 std::ostream& operator<<(std::ostream& os, const FixedPoint& fp) {
     os << fp.to_double();
@@ -180,9 +229,6 @@ public:
     }
 };
 
-} // namespace SatvikAGI
-
-
 /**
  * @brief Represents a quantum-inspired probabilistic weight using fixed-point numbers.
  * Utilizes FixedPoint alpha (amplitude of |0>) and beta (amplitude of |1>)
@@ -190,12 +236,12 @@ public:
  * This implementation focuses on bit-manipulation efficiency.
  */
 struct VedaQubit {
-    FixedPoint alpha; // Probabilistic weight for state |0>
-    FixedPoint beta;  // Probabilistic weight for state |1>
+    SatvikAGI::FixedPoint alpha; // Probabilistic weight for state |0>
+    SatvikAGI::FixedPoint beta;  // Probabilistic weight for state |1>
 
     // Constructor for VedaQubit
     // Initializes with given fixed-point amplitudes. Should ideally be normalized.
-    VedaQubit(FixedPoint a = FixedPoint(0.7071), FixedPoint b = FixedPoint(0.7071)) :
+    VedaQubit(SatvikAGI::FixedPoint a = SatvikAGI::FixedPoint(0.7071), SatvikAGI::FixedPoint b = SatvikAGI::FixedPoint(0.7071)) :
         alpha(a), beta(b) {
         // In a real quantum system, alpha^2 + beta^2 = 1. This needs to be maintained.
         // For fixed-point, we approximate this with bitwise operations.
@@ -208,32 +254,24 @@ struct VedaQubit {
      * This is a critical step for maintaining the probabilistic interpretation of the qubit.
      */
     void normalize() {
-        FixedPoint alpha_sq = alpha * alpha;
-        FixedPoint beta_sq = beta * beta;
-        FixedPoint sum_sq = alpha_sq + beta_sq;
+        SatvikAGI::FixedPoint alpha_sq = alpha * alpha;
+        SatvikAGI::FixedPoint beta_sq = beta * beta;
+        SatvikAGI::FixedPoint sum_sq = alpha_sq + beta_sq;
 
         if (sum_sq.value == 0) {
             // Avoid division by zero, set to default normalized state if both are zero.
-            alpha = FixedPoint(0.7071);
-            beta = FixedPoint(0.7071);
+            alpha = SatvikAGI::FixedPoint(0.7071);
+            beta = SatvikAGI::FixedPoint(0.7071);
             normalize(); // Recurse to normalize the new default state
             return;
         }
 
-        // Calculate inverse square root approximation for fixed-point numbers.
-        // This is a placeholder for a more optimized, bitwise inverse square root (e.g., fast inverse square root).
-        // For demonstration, we use floating point conversion for sqrt, then convert back.
-        double norm_factor_double = std::sqrt(sum_sq.to_double());
-        FixedPoint norm_factor = FixedPoint(norm_factor_double);
+        // Calculate inverse square root approximation using fixed-point arithmetic
+        SatvikAGI::FixedPoint norm_factor_inverse = FixedPoint::inverse_sqrt_fixed_point(sum_sq);
 
-        if (norm_factor.value != 0) {
-            alpha = alpha / norm_factor;
-            beta = beta / norm_factor;
-        } else {
-            // Fallback if normalization factor is still zero
-            alpha = FixedPoint(0.7071);
-            beta = FixedPoint(0.7071);
-        }
+        // Apply normalization: alpha = alpha * (1/sqrt(sum_sq)), beta = beta * (1/sqrt(sum_sq))
+        alpha = alpha * norm_factor_inverse;
+        beta = beta * norm_factor_inverse;
     }
 
     /**
@@ -242,12 +280,12 @@ struct VedaQubit {
      * In a fixed-point context, this would involve efficient bitwise shifts and additions.
      */
     void apply_hadamard() {
-        FixedPoint old_alpha = alpha;
+        SatvikAGI::FixedPoint old_alpha = alpha;
         // Approximated Hadamard for fixed-point:
         // new_alpha = (old_alpha + old_beta) * (1/sqrt(2))
         // new_beta  = (old_alpha - old_beta) * (1/sqrt(2))
 
-        FixedPoint one_over_sqrt2 = FixedPoint(0.7071); // Approx 1/sqrt(2)
+        SatvikAGI::FixedPoint one_over_sqrt2 = SatvikAGI::FixedPoint(0.7071); // Approx 1/sqrt(2)
 
         alpha = (old_alpha + beta) * one_over_sqrt2;
         beta = (old_alpha - beta) * one_over_sqrt2;
@@ -259,15 +297,15 @@ struct VedaQubit {
      * Returns true for |0> (alpha wins), false for |1> (beta wins).
      */
     bool measure() const {
-        FixedPoint alpha_sq = alpha * alpha;
-        FixedPoint beta_sq = beta * beta; // Should sum to approximately 1 after normalization
+        SatvikAGI::FixedPoint alpha_sq = alpha * alpha;
+        // SatvikAGI::FixedPoint beta_sq = beta * beta; // Not directly used for measurement decision
 
         // Generate a random fixed-point number between 0 and 1
         // Placeholder for a high-quality, fixed-point random number generator
-        double random_double = (double)rand() / RAND_MAX; // Use std::rand for simplicity
-        FixedPoint random_fp = FixedPoint(random_double);
+        double random_double = (double)std::rand() / RAND_MAX; // Use std::rand for simplicity
+        SatvikAGI::FixedPoint random_fp = SatvikAGI::FixedPoint(random_double);
 
-        // Measure based on probabilities alpha^2 and beta^2
+        // Measure based on probabilities alpha^2
         if (random_fp < alpha_sq) {
             return true; // Collapse to |0>
         } else {
@@ -275,12 +313,58 @@ struct VedaQubit {
         }
     }
 
-    // Output stream operator for VedaQubit
-    friend std::ostream& operator<<(std::ostream& os, const VedaQubit& q) {
-        os << "(|0>: " << q.alpha << ", |1>: " << q.beta << ")";
-        return os;
+    // Output stream operator for VedaQubit - needs to be declared as friend inside the struct
+    friend std::ostream& operator<<(std::ostream& os, const VedaQubit& q);
+
+    // NEW: Fixed-point inverse square root approximation (Newton-Raphson)
+    static FixedPoint inverse_sqrt_fixed_point(FixedPoint x) {
+        // Handle zero input to avoid division by zero
+        if (x.value == 0) return FixedPoint(0LL); // Or throw an error
+
+        FixedPoint guess;
+
+        // Simplified initial guess logic
+        // If x is large, 1/sqrt(x) is small. If x is small, 1/sqrt(x) is large.
+        // A better initial guess would involve bit manipulation or a lookup table.
+        // For now, we'll try a rough heuristic based on magnitude relative to 1.0 fixed point
+        FixedPoint one_fp = FixedPoint(1LL << SCALE_FACTOR_BITS);
+
+        if (x.value > (one_fp.value << 2)) { // If x > 4.0
+            guess = FixedPoint(1LL << (SCALE_FACTOR_BITS - 1)); // Initial guess approx 0.5
+        } else if (x.value < (one_fp.value >> 2)) { // If x < 0.25
+            guess = FixedPoint(1LL << (SCALE_FACTOR_BITS + 1)); // Initial guess approx 2.0
+        } else {
+            guess = one_fp; // Initial guess approx 1.0
+        }
+
+        // Newton-Raphson iteration for 1/sqrt(x):
+        // y_new = y_old * (3 - x * y_old^2) / 2
+        // Using bit shifts for division by 2
+
+        FixedPoint three_fp = FixedPoint(3LL << SCALE_FACTOR_BITS);
+        
+        for (int i = 0; i < 4; ++i) { // 4 iterations for reasonable precision
+            FixedPoint x_times_y_sq = x * guess * guess; // x * guess^2
+            FixedPoint term = three_fp - x_times_y_sq;    // 3 - x * guess^2
+            
+            // guess = (guess * term) / FixedPoint(2.0);
+            // FixedPoint(2.0) is (2LL << SCALE_FACTOR_BITS)
+            // So guess * term >> SCALE_FACTOR_BITS, then divide by 2
+            // So (guess.value * term.value >> SCALE_FACTOR_BITS) >> 1
+            // simplified as guess.value * term.value >> (SCALE_FACTOR_BITS + 1)
+            
+            guess.value = (guess.value * term.value) >> (SCALE_FACTOR_BITS + 1);
+        }
+        return guess;
     }
+
 };
+
+// Definition of the output stream operator outside the struct but within the namespace
+std::ostream& operator<<(std::ostream& os, const VedaQubit& q) {
+    os << "(|0>: " << q.alpha.to_double() << ", |1>: " << q.beta.to_double() << ")";
+    return os;
+}
 
 } // namespace SatvikAGI
 
